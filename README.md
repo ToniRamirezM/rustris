@@ -26,7 +26,7 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 
 ### 1. Clone and build the project
 ```bash
-git clone https://github.com/username/rustris.git
+git clone https://github.com/ToniRamirezM/rustris.git
 cd rustris
 cargo build --release
 ````
@@ -59,18 +59,18 @@ Press **Esc** or close the window to stop execution.
 
 ## Controls
 
-| Game Boy Button | Key   |
-| --------------- | ----- |
-| A               | Z     |
-| B               | X     |
-| Start           | Enter |
-| Select          | Shift |
-| Up              | ↑     |
-| Down            | ↓     |
-| Left            | ←     |
-| Right           | →     |
+| Game Boy Button | Key    |
+| --------------- | ------ |
+| A               | Z      |
+| B               | X      |
+| Start           | Return |
+| Select          | Space  |
+| Up              | ↑      |
+| Down            | ↓      |
+| Left            | ←      |
+| Right           | →      |
 
-It is also possible to toggle between the clasic GB green screen or use the GB Color palette by pressing **P**.
+It is also possible to toggle between the classic GB green screen or use the GB Color palette by pressing **P**.
 
 <p align="center">
   <img src="img/green.png" alt="Classic Game Boy green screen" width="300"/>
