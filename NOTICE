@@ -1,0 +1,9 @@
+Rustris
+Rust Ultra Simple Tetris Emulator — a Game Boy Tetris emulator written in Rust.
+Copyright (c) 2025 Toni Ramírez
+
+This project is licensed under either MIT or Apache-2.0, at your option.
+See LICENSE-MIT and LICENSE-APACHE for details.
+
+This project is not affiliated with or endorsed by Nintendo.
+No ROMs are included. Trademarks belong to their respective owners.
