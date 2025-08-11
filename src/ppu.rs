@@ -157,52 +157,54 @@ impl PPU {
         }
     }
 
-    /// Render the BG line with Tetris-only assumptions:
-    /// - No scroll (SCX=SCY=0).
-    /// - BG map base fixed at 0x9800 (LCDC bit 3 ignored).
-    /// - Tile data uses the unsigned region at 0x8000 (LCDC bit 4 assumed set).
-    /// - Window is ignored.
-    /// - Draws 20 tiles × 8 pixels instead of per-pixel addressing.
-    /// Good enough for Tetris and much faster
+    /// Render the current background scanline using live scroll and LCDC settings:
+    /// - Honors LCDC: LCD enable (bit 7) and BG enable (bit 0); returns early if either is off.
+    /// - Applies SCX/SCY scrolling (wrapping) to choose the source BG pixel.
+    /// - Selects BG map base at 0x9800 or 0x9C00 depending on LCDC bit 3.
+    /// - Selects tile data at 0x8000 (unsigned) or 0x8800/0x9000 (signed) depending on LCDC bit 4.
+    /// - For each of the 160 screen pixels, fetches the tile row bytes, extracts the 2-bit color id,
+    ///   maps it through BGP (FF47), and writes the RGB value using the current palette.
+    /// Notes: window layer and tile priorities/attributes are not handled.
     fn render_bg_line(&mut self, mmu: &MMU) {
         let y = self.ly;
         if y >= 144 { return; }
 
-        // Use current BGP mapping (games like Tetris configure it themselves).
-        let bgp = mmu.read_byte(0xFF47);
+        // Read registers
+        let lcdc = mmu.read_byte(0xFF40);
+        if (lcdc & 0x80) == 0 { return; } // LCD off
+        if (lcdc & 0x01) == 0 { return; } // BG off
 
-        // Optional tiny LUT to avoid shifting BGP per pixel
-        let shade_lut = [
-            (bgp      ) & 0b11,
-            (bgp >> 2) & 0b11,
-            (bgp >> 4) & 0b11,
-            (bgp >> 6) & 0b11,
-        ];
+        let scx  = mmu.read_byte(0xFF43);
+        let scy  = mmu.read_byte(0xFF42);
+        let bgp  = mmu.read_byte(0xFF47);
 
-        let tile_row    = (y as u16) / 8;
-        let row_in_tile = (y as u16 % 8) as u16;
+        let src_y = y.wrapping_add(scy);
+        let tile_row = (src_y as u16) / 8;
+        let row_in_tile = (src_y % 8) as u16;
 
-        // Fixed BG map base for Tetris
-        let bg_map_row_addr = 0x9800u16 + tile_row * 32;
+        let bg_map_base = if (lcdc & 0x08) != 0 { 0x9C00 } else { 0x9800 };
+        let bg_map_row_addr = bg_map_base + tile_row * 32;
 
-        // Draw 20 tiles across (160 px / 8 px per tile)
-        for tile_col in 0..20u16 {
+        for x in 0..SCREEN_WIDTH {
+            let src_x = x.wrapping_add(scx);
+            let tile_col = (src_x as u16) / 8;
             let tile_index = mmu.read_byte(bg_map_row_addr + tile_col);
 
-            // Unsigned tile addressing at 0x8000
-            let tile_addr = 0x8000u16 + (tile_index as u16) * 16 + row_in_tile * 2;
-            let b0 = mmu.read_byte(tile_addr);
-            let b1 = mmu.read_byte(tile_addr + 1);
+            // Choose tile data region: 0x8000 (unsigned) or 0x8800/0x9000 (signed)
+            let tile_addr = if (lcdc & 0x10) != 0 {
+                0x8000 + (tile_index as u16) * 16
+            } else {
+                // signed index
+                0x9000u16.wrapping_add((tile_index as i8 as i16 as u16) * 16)
+            };
 
-            let x_start = (tile_col as usize) * 8;
+            let bit = 7 - (src_x % 8);
+            let b0 = mmu.read_byte(tile_addr + row_in_tile * 2);
+            let b1 = mmu.read_byte(tile_addr + row_in_tile * 2 + 1);
+            let color_id = ((b1 >> bit) & 1) << 1 | ((b0 >> bit) & 1);
+            let shade = (bgp >> (color_id * 2)) & 0b11;
 
-            // Emit 8 pixels from this 2bpp tile row
-            for px in 0..8 {
-                let bit = 7 - px;
-                let color_id = ((b1 >> bit) & 1) << 1 | ((b0 >> bit) & 1);
-                let shade = shade_lut[color_id as usize];
-                put_px(&mut self.fb, x_start + px, y as usize, shade, self.palette);
-            }
+            put_px(&mut self.fb, x as usize, y as usize, shade, self.palette);
         }
     }
 

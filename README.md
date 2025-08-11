@@ -10,7 +10,7 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 ## Features
 - Minimal Sharp LR35902 CPU core — implements only the opcodes exercised by **Tetris**.
 - Simplified MMU (32 KB ROM only, no MBC), basic I/O, and joypad handling.
-- Real-time, scanline-based renderer with Tetris-optimized fast paths.
+- - Real-time, scanline-based renderer.
 - Keyboard input mapped to Game Boy buttons.
 - Small, modular codebase (CPU / MMU / PPU / GB façade / SDL front end).
 
@@ -18,7 +18,7 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 - No APU (audio) emulation.
 - Timers not fully implemented: `DIV` (FF04) returns a pseudo-random byte; `TIMA/TAC` are unimplemented.
 - No MBC or banked cartridges — only 32 KB ROMs are supported.
-- Background rendering is minimized: assumes no scroll/window, unsigned tile data at `0x8000`, fixed BG map at `0x9800` (Tetris behavior).
+- - Background rendering: honors SCX/SCY scrolling and selects BG map (0x9800/0x9C00) and tile data (0x8000 or 0x8800/0x9000) from LCDC. Window and tile priority/attributes are not implemented.
 - Sprite rendering is minimized: 8×8 only; no flips, priority, or 8×16 mode; uses OBP0/OBP1; color 0 is transparent.
 - Interrupts: only VBlank is serviced; STAT/Timer/Serial/Joypad IRQs are ignored.
 

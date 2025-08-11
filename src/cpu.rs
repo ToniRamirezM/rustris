@@ -853,6 +853,16 @@ impl CPU {
                 4
             }
 
+            0xB5 => {
+                // OR L
+                self.a |= self.l;
+                self.set_flag_z(self.a == 0);
+                self.set_flag_n(false);
+                self.set_flag_h(false);
+                self.set_flag_c(false);
+                4
+            }
+
             0xB7 => {
                 // OR A
                 self.a |= self.a;
@@ -1404,6 +1414,18 @@ impl CPU {
                         let val = memory.read_byte(addr) | (1 << 3);
                         memory.write_byte(addr, val);
                         16
+                    }
+
+                    0xD8 => {
+                        // SET 3, B
+                        self.b |= 1 << 3;
+                        8
+                    }
+
+                    0xF8 => {
+                        // SET 7, B
+                        self.b |= 1 << 7;
+                        8
                     }
 
                     0xFE => {
