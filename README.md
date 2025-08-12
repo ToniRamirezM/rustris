@@ -61,8 +61,8 @@ Press **Esc** or close the window to stop execution.
 
 | Game Boy Button | Key    |
 | --------------- | ------ |
-| A               | Z      |
-| B               | X      |
+| A               | X      |
+| B               | Z      |
 | Start           | Return |
 | Select          | Space  |
 | Up              | ↑      |

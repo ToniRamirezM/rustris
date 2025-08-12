@@ -16,8 +16,8 @@ const INPUT_MASKS: [(Scancode, u8); 8] = [
     (Scancode::Left,   gb::BTN_LEFT),
     (Scancode::Up,     gb::BTN_UP),
     (Scancode::Down,   gb::BTN_DOWN),
-    (Scancode::Z,      gb::BTN_A),
-    (Scancode::X,      gb::BTN_B),
+    (Scancode::X,      gb::BTN_A),
+    (Scancode::Z,      gb::BTN_B),
     (Scancode::Space,  gb::BTN_SELECT),
     (Scancode::Return, gb::BTN_START),
 ];
