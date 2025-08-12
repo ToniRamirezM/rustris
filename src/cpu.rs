@@ -1063,6 +1063,23 @@ impl CPU {
                 16
             }
 
+            0xDE => {
+                // SBC A, d8
+                let value = memory.read_byte(self.pc);
+                self.pc = self.pc.wrapping_add(1);
+
+                let carry_in = if self.f & 0x10 != 0 { 1 } else { 0 }; // C flag
+                let result = self.a.wrapping_sub(value).wrapping_sub(carry_in);
+
+                self.set_flag_z(result == 0);
+                self.set_flag_n(true);
+                self.set_flag_h((self.a & 0x0F) < ((value & 0x0F) + carry_in));
+                self.set_flag_c((self.a as u16) < (value as u16 + carry_in as u16));
+
+                self.a = result;
+                8
+            }
+
             0xE0 => {
                 // LDH (n),A
                 let offset = self.fetch_u8(memory) as u16;
