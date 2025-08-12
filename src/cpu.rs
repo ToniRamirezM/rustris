@@ -763,6 +763,21 @@ impl CPU {
                 8
             }
 
+            0x99 => {
+                // SBC A, C
+                let carry_in = if self.f & 0x10 != 0 { 1 } else { 0 }; // C flag
+                let value = self.c;
+                let result = self.a.wrapping_sub(value).wrapping_sub(carry_in);
+
+                self.set_flag_z(result == 0);
+                self.set_flag_n(true);
+                self.set_flag_h((self.a & 0x0F) < ((value & 0x0F) + carry_in));
+                self.set_flag_c((self.a as u16) < (value as u16 + carry_in as u16));
+
+                self.a = result;
+                4
+            }
+
             0xA0 => {
                 // AND B
                 self.a &= self.b;
