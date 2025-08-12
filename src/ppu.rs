@@ -208,12 +208,13 @@ impl PPU {
         }
     }
 
-    /// Render sprites that intersect the current scanline (Tetris-oriented simplification):
+    /// Render sprites that intersect the current scanline:
     /// - Requires LCDC bits: LCD enable (bit 7) and OBJ enable (bit 1).
-    /// - Assumes 8×8 sprites only (ignores OBJ size bit 2 and 8×16 layout).
-    /// - Processes OAM in order and draws at most 10 sprites per line (DMG rule).
-    /// - Ignores X/Y flip and OBJ-to-BG priority; uses OBP0/OBP1 as selected by the attribute.
+    /// - Supports 8×8 and 8×16 sprites (per LCDC bit 2).
+    /// - Selects up to 10 sprites per line in OAM order (DMG rule).
+    /// - Handles X/Y flip and OBP0/OBP1 selection; ignores OBJ-to-BG priority.
     /// - Color 0 is transparent; only nonzero pixels are drawn.
+    /// - Draws in reverse OAM order so lower OAM indices end up on top.
     fn render_sprites_line(&mut self, mmu: &MMU) {
         let y = self.ly as i16;
         if y >= SCREEN_HEIGHT as i16 { return; }
@@ -222,56 +223,89 @@ impl PPU {
         if (lcdc & 0x80) == 0 { return; } // LCD off
         if (lcdc & 0x02) == 0 { return; } // Sprites off
 
-        // Tetris simplification:
-        // - Assume 8x8 sprites only (ignore LCDC bit 2 / 8x16 mode).
-        // - Ignore X/Y flip and OBJ-to-BG priority.
-        // - Use OBP0/OBP1 per attribute, but no other attributes are handled.
+        let sprite_8x16 = (lcdc & 0x04) != 0;
         let obp0 = mmu.read_byte(0xFF48);
         let obp1 = mmu.read_byte(0xFF49);
+
         let oam_base = 0xFE00u16;
 
-        // Select and draw up to 10 sprites intersecting this scanline, in OAM order.
-        let mut drawn = 0;
+        // 1) Select the first 10 sprites intersecting this line (OAM order)
+        let mut selected: [i32; 10] = [-1; 10];
+        let mut sel_count = 0;
+
         for i in 0..40 {
-            if drawn >= 10 { break; }
-
-            let idx = oam_base + i * 4;
+            if sel_count >= 10 { break; }
+            let idx = oam_base + i*4;
             let sy  = mmu.read_byte(idx) as i16 - 16; // on-screen Y
-            let sx  = mmu.read_byte(idx + 1) as i16 - 8; // on-screen X
-            let tile = mmu.read_byte(idx + 2);
-            let attr = mmu.read_byte(idx + 3);
 
-            // Intersects 8x8 sprite?
-            if y < sy || y >= sy + 8 { continue; }
+            let height = if sprite_8x16 { 16 } else { 8 };
+            if y < sy || y >= sy + height { continue; }
 
-            // Pick palette (ignore flips/priority)
-            let pal = if (attr & 0x10) != 0 { obp1 } else { obp0 };
+            // Store OAM index for the second pass
+            selected[sel_count] = i as i32;
+            sel_count += 1;
+        }
 
-            // Row inside the sprite (no vertical flip)
-            let line = (y - sy) as u16;
-            let tile_addr = 0x8000u16 + (tile as u16) * 16 + line * 2;
+        if sel_count == 0 { return; }
+
+        // 2) Draw in reverse OAM order so lower indices end up on top
+        for s in (0..sel_count).rev() {
+            let i = selected[s] as u16;
+            let idx = oam_base + i*4;
+
+            let sy   = mmu.read_byte(idx) as i16 - 16;
+            let sx   = mmu.read_byte(idx+1) as i16 - 8;
+            let mut tile = mmu.read_byte(idx+2);
+            let attr = mmu.read_byte(idx+3);
+
+            let height = if sprite_8x16 { 16 } else { 8 };
+            let yflip = (attr & 0x40) != 0;
+            let xflip = (attr & 0x20) != 0;
+            let pal   = if (attr & 0x10) != 0 { obp1 } else { obp0 };
+
+            // Line within the sprite, honoring vertical flip
+            let mut line = (y - sy) as u16;
+            if yflip {
+                line = (height as u16 - 1) - line;
+            }
+
+            // 8×16 uses two consecutive tiles; ignore tile index LSB
+            let base_tile_addr = if sprite_8x16 {
+                tile &= 0xFE;
+                0x8000u16 + (tile as u16) * 16
+            } else {
+                0x8000u16 + (tile as u16) * 16
+            };
+
+            // Select tile row address
+            let tile_addr = if sprite_8x16 && line >= 8 {
+                // second half
+                base_tile_addr + 16 + (line as u16 - 8) * 2
+            } else {
+                base_tile_addr + (line as u16 % 8) * 2
+            };
 
             let b0 = mmu.read_byte(tile_addr);
             let b1 = mmu.read_byte(tile_addr + 1);
 
-            // Draw 8 pixels, no horizontal flip
+            // Draw 8 pixels
             for px in 0..8 {
-                let bit = 7 - px;
+                let mut bit = 7 - px;
+                if xflip { bit = px; }
+
                 let color_id = (((b1 >> bit) & 1) << 1) | ((b0 >> bit) & 1);
+                if color_id == 0 { continue; } // color 0 is transparent
 
-                // Color 0 is transparent
-                if color_id == 0 { continue; }
-
-                let x = sx + px as i16;
+                let x = if xflip { sx + (7 - px as i16) } else { sx + px as i16 };
                 if x < 0 || x >= SCREEN_WIDTH as i16 { continue; }
+                if sy < 0 || sy >= SCREEN_HEIGHT as i16 { continue; }
 
                 let shade = (pal >> (color_id * 2)) & 0b11;
                 put_px(&mut self.fb, x as usize, y as usize, shade, self.palette);
             }
-
-            drawn += 1;
         }
-    }
+}
+
 
     /// Returns whether a frame has just completed; clears the flag on read.
     pub fn is_frame_ready(&mut self) -> bool {

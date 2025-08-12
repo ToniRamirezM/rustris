@@ -19,7 +19,7 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 - Timers not fully implemented: `DIV` (FF04) returns a pseudo-random byte; `TIMA/TAC` are unimplemented.
 - No MBC or banked cartridges — only 32 KB ROMs are supported.
 - Background rendering: honors SCX/SCY scrolling and selects BG map (0x9800/0x9C00) and tile data (0x8000 or 0x8800/0x9000) from LCDC. Window and tile priority/attributes are not implemented.
-- Sprite rendering is minimized: 8×8 only; no flips, priority, or 8×16 mode; uses OBP0/OBP1; color 0 is transparent.
+- Sprite rendering: supports 8×8 and 8×16 (per LCDC), handles X/Y flip and OBP0/OBP1; **color 0 is transparent; priority and other attributes are not handled**.
 - Interrupts: only VBlank is serviced; STAT/Timer/Serial/Joypad IRQs are ignored.
 
 ## Installation & Usage
@@ -29,7 +29,7 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 git clone https://github.com/ToniRamirezM/rustris.git
 cd rustris
 cargo build --release
-````
+```
 
 Rustris requires [SDL2](https://www.libsdl.org/) to handle graphics and input.  
 If you don’t have it installed, follow the official installation guide for your platform:  
