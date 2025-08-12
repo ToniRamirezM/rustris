@@ -208,12 +208,14 @@ impl PPU {
         }
     }
 
-    /// Render sprites that intersect the current scanline (Tetris-oriented simplification):
+    /// Render sprites that intersect the current scanline (Tetris-oriented simplification with flip support):
     /// - Requires LCDC bits: LCD enable (bit 7) and OBJ enable (bit 1).
     /// - Assumes 8×8 sprites only (ignores OBJ size bit 2 and 8×16 layout).
     /// - Processes OAM in order and draws at most 10 sprites per line (DMG rule).
-    /// - Ignores X/Y flip and OBJ-to-BG priority; uses OBP0/OBP1 as selected by the attribute.
+    /// - Supports X/Y flip attributes from OAM (bits 5 and 6 of attribute byte).
+    /// - Ignores OBJ-to-BG priority; uses OBP0/OBP1 as selected by the attribute.
     /// - Color 0 is transparent; only nonzero pixels are drawn.
+    /// - Sprite pixels are drawn "as is" without background priority checks.
     fn render_sprites_line(&mut self, mmu: &MMU) {
         let y = self.ly as i16;
         if y >= SCREEN_HEIGHT as i16 { return; }
@@ -222,44 +224,45 @@ impl PPU {
         if (lcdc & 0x80) == 0 { return; } // LCD off
         if (lcdc & 0x02) == 0 { return; } // Sprites off
 
-        // Tetris simplification:
-        // - Assume 8x8 sprites only (ignore LCDC bit 2 / 8x16 mode).
-        // - Ignore X/Y flip and OBJ-to-BG priority.
-        // - Use OBP0/OBP1 per attribute, but no other attributes are handled.
         let obp0 = mmu.read_byte(0xFF48);
         let obp1 = mmu.read_byte(0xFF49);
         let oam_base = 0xFE00u16;
 
-        // Select and draw up to 10 sprites intersecting this scanline, in OAM order.
         let mut drawn = 0;
         for i in 0..40 {
             if drawn >= 10 { break; }
 
             let idx = oam_base + i * 4;
-            let sy  = mmu.read_byte(idx) as i16 - 16; // on-screen Y
-            let sx  = mmu.read_byte(idx + 1) as i16 - 8; // on-screen X
+            let sy = mmu.read_byte(idx) as i16 - 16;
+            let sx = mmu.read_byte(idx + 1) as i16 - 8;
             let tile = mmu.read_byte(idx + 2);
             let attr = mmu.read_byte(idx + 3);
 
             // Intersects 8x8 sprite?
             if y < sy || y >= sy + 8 { continue; }
 
-            // Pick palette (ignore flips/priority)
             let pal = if (attr & 0x10) != 0 { obp1 } else { obp0 };
 
-            // Row inside the sprite (no vertical flip)
-            let line = (y - sy) as u16;
-            let tile_addr = 0x8000u16 + (tile as u16) * 16 + line * 2;
+            // Calculate sprite line with vertical flip support
+            let line = if (attr & 0x40) != 0 { 
+                7 - (y - sy) as u16  // Y-flip: invert line order
+            } else { 
+                (y - sy) as u16 
+            };
 
+            let tile_addr = 0x8000u16 + (tile as u16) * 16 + line * 2;
             let b0 = mmu.read_byte(tile_addr);
             let b1 = mmu.read_byte(tile_addr + 1);
 
-            // Draw 8 pixels, no horizontal flip
+            // Draw 8 pixels with horizontal flip support
             for px in 0..8 {
-                let bit = 7 - px;
-                let color_id = (((b1 >> bit) & 1) << 1) | ((b0 >> bit) & 1);
+                let bit = if (attr & 0x20) != 0 { 
+                    px  // X-flip: read bits left-to-right
+                } else { 
+                    7 - px  // Normal: read bits right-to-left
+                };
 
-                // Color 0 is transparent
+                let color_id = (((b1 >> bit) & 1) << 1) | ((b0 >> bit) & 1);
                 if color_id == 0 { continue; }
 
                 let x = sx + px as i16;

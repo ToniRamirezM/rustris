@@ -19,7 +19,12 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 - Timers not fully implemented: `DIV` (FF04) returns a pseudo-random byte; `TIMA/TAC` are unimplemented.
 - No MBC or banked cartridges — only 32 KB ROMs are supported.
 - Background rendering: honors SCX/SCY scrolling and selects BG map (0x9800/0x9C00) and tile data (0x8000 or 0x8800/0x9000) from LCDC. Window and tile priority/attributes are not implemented.
-- Sprite rendering is minimized: 8×8 only; no flips, priority, or 8×16 mode; uses OBP0/OBP1; color 0 is transparent.
+- Sprite rendering limitations:
+  - 8×8 sprites only (no 8×16 mode support)
+  - Supports X/Y flip attributes (bits 5-6 of OAM)
+  - Ignores OBJ-to-BG priority (sprites always draw over background)
+  - Uses OBP0/OBP1 palettes as selected
+  - Color 0 remains transparent
 - Interrupts: only VBlank is serviced; STAT/Timer/Serial/Joypad IRQs are ignored.
 
 ## Installation & Usage
