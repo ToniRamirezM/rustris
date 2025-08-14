@@ -13,7 +13,7 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 - Real-time, scanline-based renderer.
 - Keyboard input mapped to Game Boy buttons.
 - Small, modular codebase (CPU / MMU / PPU / GB façade / SDL front end).
-- APU emulation using Blargg's GB APU Library (https://github.com/blarggs-audio-libraries/Gb_Snd_Emu)
+- APU emulation using [Blargg's GB APU Library](https://github.com/blarggs-audio-libraries/Gb_Snd_Emu)
 
 ## What’s missing / limitations
 - Timers not fully implemented: `DIV` (FF04) returns a pseudo-random byte; `TIMA/TAC` are unimplemented.
