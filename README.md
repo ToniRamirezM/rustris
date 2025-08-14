@@ -31,12 +31,12 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 
 ### 1. Clone and build the project
 ```bash
-git clone https://github.com/ToniRamirezM/rustris.git
+git clone --branch gb_apu https://github.com/ToniRamirezM/rustris.git
 cd rustris
 cargo build --release
 ```
 
-Rustris requires [SDL2](https://www.libsdl.org/) to handle graphics and input.  
+Rustris requires [SDL2](https://www.libsdl.org/) to handle graphics, input and sound.  
 If you don’t have it installed, follow the official installation guide for your platform:  
 [SDL2 Installation Instructions](https://wiki.libsdl.org/SDL2/Installation)
 
