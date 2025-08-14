@@ -1,4 +1,5 @@
 use crate::cpu::CPU;
+use crate::apu::APU;
 use crate::cartridge::Cartridge;
 use crate::mmu::MMU;
 use crate::ppu::{GREEN_PALETTE, COLOR_PALETTE, PPU};
@@ -35,8 +36,8 @@ pub struct GB {
 
 impl GB {
     /// Creates a new Game Boy instance with the given cartridge loaded.
-    pub fn new(cartridge: Cartridge) -> Self {
-        let mmu = MMU::new(cartridge);
+    pub fn new(cartridge: Cartridge, apu: APU) -> Self {
+        let mmu = MMU::new(cartridge, apu);
 
         GB {
             cpu: CPU::new(),
@@ -54,6 +55,8 @@ impl GB {
     pub fn step(&mut self, framebuffer: &mut [u8], pitch: usize) -> bool {
         let t = self.cpu.step(&mut self.mmu);
         self.ppu.step(&mut self.mmu, t, framebuffer, pitch);
+        self.mmu.apu.advance_clocks(t);
+        self.mmu.apu.end_frame(t);
         self.ppu.is_frame_ready()
     }
 
@@ -74,5 +77,9 @@ impl GB {
         } else {
             self.ppu.set_palette(GREEN_PALETTE);
         }
+    }
+
+    pub fn audio_read_samples(&mut self, out: &mut [i16]) -> usize {
+        self.mmu.apu.read_samples(out)
     }
 }

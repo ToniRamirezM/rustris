@@ -3,10 +3,13 @@ mod ppu;
 mod mmu;
 mod cpu;
 mod gb;
+mod apu;
 
 use gb::GB;
 use cartridge::Cartridge;
+use apu::APU;
 
+use sdl2::audio::{AudioSpecDesired, AudioQueue};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
@@ -40,7 +43,7 @@ fn main() {
         }
     };
 
-    emulate(GB::new(cartridge));
+    emulate(GB::new(cartridge, APU::new(44100)));
 }
 
 /// SDL front-end:
@@ -52,6 +55,7 @@ fn main() {
 fn emulate(mut gb: GB) {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
+    let audio_subsystem = sdl_context.audio().unwrap();
 
     let window = video_subsystem
         .window(
@@ -80,6 +84,19 @@ fn emulate(mut gb: GB) {
     // Precise frame limiter state
     let frame_period = Duration::from_nanos(GB_FRAME_NS);
     let mut next_deadline = Instant::now() + frame_period;
+
+    // ------ AUDIO ------
+    let desired = AudioSpecDesired {
+        freq: Some(44_100),
+        channels: Some(2),      // stereo
+        samples: Some(1024),    // buffer size (power of two recommended)
+    };
+
+    // Interleaved stereo S16 (i16) audio queue
+    let audio: AudioQueue<i16> = audio_subsystem.open_queue(None, &desired).unwrap();
+    audio.resume();
+
+    let mut audio_buf = [0i16; 4096];
 
     'running: loop {
         // --- Event handling ---
@@ -123,6 +140,20 @@ fn emulate(mut gb: GB) {
 
         canvas.copy(&texture, None, None).unwrap();
         canvas.present();
+        
+        // --- Audio handling ---
+        let n = gb.audio_read_samples(&mut audio_buf);
+        if n > 0 {
+           let _ =  audio.queue_audio(&audio_buf[..n]);
+        }
+
+        // Latency handling
+        let queued_bytes = audio.size() as usize;
+        let target_latency_bytes = 44100 /*Hz*/ * 2 /*bytes*/ * 2 /*channels*/ / 20; // ~50ms
+        if queued_bytes > target_latency_bytes * 2 {
+            // if it exceeds >100ms, clear a bit so it doesn't grow indefinitely
+            audio.clear();
+        }
 
         // --- Precise frame limiter (sleep + spin to reach exact deadline) ---
         let now = Instant::now();

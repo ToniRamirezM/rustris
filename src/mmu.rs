@@ -1,4 +1,5 @@
 use crate::cartridge::Cartridge;
+use crate::apu::APU;
 use crate::gb::{BTN_RIGHT, BTN_LEFT, BTN_UP, BTN_DOWN, BTN_A, BTN_B, BTN_SELECT, BTN_START};
 
 // MMU: implements the DMG memory map and bus access.
@@ -19,10 +20,11 @@ pub struct MMU {
     hram: [u8; 0x7F],   // 127 bytes HRAM
     ie: u8,             // Interrupt Enable
     buttons: u8,        // Input buttons
+    pub apu: APU,
 }
 
 impl MMU {
-    pub fn new(cartridge: Cartridge) -> Self {
+    pub fn new(cartridge: Cartridge, apu: APU) -> Self {
         let mut mmu = Self {
             rom: cartridge.rom.clone().try_into().expect("incorrect ROM size"),
             vram: [0; 0x2000],
@@ -33,6 +35,7 @@ impl MMU {
             io:   [0; 0x80],
             ie: 0,
             buttons: 0,
+            apu
         };
 
         // Post-BIOS initialization
@@ -161,9 +164,19 @@ impl MMU {
                             self.oam[i as usize] = b;
                         }
                     }
+                    0xFF26 => {
+                        // NR52 — master enable
+                        self.io[(addr - 0xFF00) as usize] = value;
+                        let enable = (value & 0x80) != 0;
+                        self.apu.master_enable(enable);
+                        self.apu.write(addr, value);
+                        
+                        return;
+                    }
                     _ => {}
                 }
                 self.io[(addr - 0xFF00) as usize] = value;
+                self.apu.write(addr, value);
             }
             0xFF80..=0xFFFE => self.hram[(addr - 0xFF80) as usize] = value,
             0xFFFF => self.ie = value,
