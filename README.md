@@ -16,6 +16,8 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 
 ## What’s missing / limitations
 - No APU (audio) emulation.
+
+  **UPDATE**: You can use the [gb_apu](https://github.com/ToniRamirezM/rustris/tree/gb_apu) branch, where [Blargg's GB APU](https://github.com/blarggs-audio-libraries/Gb_Snd_Emu) has been integrated in order to add sound to Rustris.
 - Timers not fully implemented: `DIV` (FF04) returns a pseudo-random byte; `TIMA/TAC` are unimplemented.
 - No MBC or banked cartridges — only 32 KB ROMs are supported.
 - Background rendering: honors SCX/SCY scrolling and selects BG map (0x9800/0x9C00) and tile data (0x8000 or 0x8800/0x9000) from LCDC. Window and tile priority/attributes are not implemented.
@@ -36,7 +38,15 @@ cd rustris
 cargo build --release
 ```
 
-Rustris requires [SDL2](https://www.libsdl.org/) to handle graphics and input.  
+**Remember to use the [gb_apu](https://github.com/ToniRamirezM/rustris/tree/gb_apu) branch before building if you want sound emulation.**
+
+```bash
+git clone --branch gb_apu https://github.com/ToniRamirezM/rustris.git
+cd rustris
+cargo build --release
+```
+
+Rustris requires [SDL2](https://www.libsdl.org/) to handle graphics, input and sound. 
 If you don’t have it installed, follow the official installation guide for your platform:  
 [SDL2 Installation Instructions](https://wiki.libsdl.org/SDL2/Installation)
 
@@ -44,7 +54,6 @@ If you don’t have it installed, follow the official installation guide for you
 
 Rustris requires a legal copy of the Game Boy *Tetris* ROM.  
 To run it, place the ROM in the **same directory as the compiled executable** and name it exactly **tetris.gb**.
-
 
 Then execute:
 
