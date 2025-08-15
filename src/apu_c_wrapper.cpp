@@ -1,5 +1,5 @@
 #include "libs/gb_apu/Gb_Apu.h"
-#include "libs/gb_apu/Multi_Buffer.h" // or "Stereo_Buffer.h"
+#include "libs/gb_apu/Multi_Buffer.h"
 #include <stdint.h>
 #include <stdlib.h>
 

@@ -147,14 +147,6 @@ fn emulate(mut gb: GB) {
            let _ =  audio.queue_audio(&audio_buf[..n]);
         }
 
-        // Latency handling
-        // let queued_bytes = audio.size() as usize;
-        // let target_latency_bytes = 44_100 /*Hz*/ * 2 /*bytes*/ * 2 /*channels*/ / 20; // ~50ms
-        // if queued_bytes > target_latency_bytes * 2 {
-            // if it exceeds >100ms, clear a bit so it doesn't grow indefinitely
-            // audio.clear();
-        //}
-
         // --- Precise frame limiter (sleep + spin to reach exact deadline) ---
         let now = Instant::now();
         if next_deadline > now {
