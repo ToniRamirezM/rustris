@@ -25,7 +25,7 @@ pub struct MMU {
 
 impl MMU {
     pub fn new(cartridge: Cartridge, apu: APU) -> Self {
-        let mut mmu = Self {
+        let mmu = Self {
             rom: cartridge.rom.clone().try_into().expect("incorrect ROM size"),
             vram: [0; 0x2000],
             eram: [0; 0x2000],
@@ -38,46 +38,6 @@ impl MMU {
             apu
         };
 
-        // Post-BIOS initialization
-        mmu.write_byte(0xFF00, 0xCF); // P1
-        mmu.write_byte(0xFF01, 0x00); // SB
-        mmu.write_byte(0xFF02, 0x7E); // SC
-        mmu.write_byte(0xFF04, 0xAB); // DIV
-        mmu.write_byte(0xFF05, 0x00); // TIMA
-        mmu.write_byte(0xFF06, 0x00); // TMA
-        mmu.write_byte(0xFF07, 0x00); // TAC
-        mmu.write_byte(0xFF0F, 0xE1); // IF
-        mmu.write_byte(0xFF10, 0x80);
-        mmu.write_byte(0xFF11, 0xBF);
-        mmu.write_byte(0xFF12, 0xF3);
-        mmu.write_byte(0xFF14, 0xBF);
-        mmu.write_byte(0xFF16, 0x3F);
-        mmu.write_byte(0xFF17, 0x00);
-        mmu.write_byte(0xFF18, 0xFF);
-        mmu.write_byte(0xFF19, 0xBF);
-        mmu.write_byte(0xFF1A, 0x7F);
-        mmu.write_byte(0xFF1B, 0xFF);
-        mmu.write_byte(0xFF1C, 0x9F);
-        mmu.write_byte(0xFF1E, 0xBF);
-        mmu.write_byte(0xFF20, 0xFF);
-        mmu.write_byte(0xFF21, 0x00);
-        mmu.write_byte(0xFF22, 0x00);
-        mmu.write_byte(0xFF23, 0xBF);
-        mmu.write_byte(0xFF24, 0x77);
-        mmu.write_byte(0xFF25, 0xF3);
-        mmu.write_byte(0xFF26, 0xF1);
-        // mmu.write_byte(0xFF40, 0x91); // LCDC ON
-        mmu.write_byte(0xFF42, 0x00); // SCY
-        mmu.write_byte(0xFF43, 0x00); // SCX
-        // mmu.write_byte(0xFF44, 0x90); // LY
-        mmu.write_byte(0xFF45, 0x00); // LYC
-        // mmu.write_byte(0xFF47, 0xE4); // BGP
-        mmu.write_byte(0xFF48, 0xFF); // OBP0
-        mmu.write_byte(0xFF49, 0xFF); // OBP1
-        mmu.write_byte(0xFF4A, 0x00); // WY
-        mmu.write_byte(0xFF4B, 0x00); // WX
-        mmu.write_byte(0xFFFF, 0x00); // IE
-    
         mmu
     }
 
@@ -155,7 +115,6 @@ impl MMU {
                         return;
                     }
                     0xFF04 => { self.io[(addr - 0xFF00) as usize] = 0; return; }
-                    0xFF44 => { self.io[(addr - 0xFF00) as usize] = value; return; }
                     0xFF46 => {
                         // OAM DMA: copy 160 bytes from (value << 8) .. (value << 8) + 0x9F to OAM
                         let src = (value as u16) << 8;
