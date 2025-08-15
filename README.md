@@ -33,7 +33,7 @@ It’s not intended to be the fastest or most feature-complete emulator. Instead
 
 ### 1. Clone and build the project
 ```bash
-git clone --branch gb_apu https://github.com/ToniRamirezM/rustris.git
+git clone https://github.com/ToniRamirezM/rustris.git
 cd rustris
 cargo build --release
 ```
