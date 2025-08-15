@@ -43,7 +43,7 @@ fn main() {
         }
     };
 
-    emulate(GB::new(cartridge, APU::new(44100)));
+    emulate(GB::new(cartridge, APU::new(44_100)));
 }
 
 /// SDL front-end:
@@ -81,10 +81,6 @@ fn emulate(mut gb: GB) {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    // Precise frame limiter state
-    let frame_period = Duration::from_nanos(GB_FRAME_NS);
-    let mut next_deadline = Instant::now() + frame_period;
-
     // ------ AUDIO ------
     let desired = AudioSpecDesired {
         freq: Some(44_100),
@@ -97,6 +93,10 @@ fn emulate(mut gb: GB) {
     audio.resume();
 
     let mut audio_buf = [0i16; 4096];
+
+    // Precise frame limiter state
+    let frame_period = Duration::from_nanos(GB_FRAME_NS);
+    let mut next_deadline = Instant::now() + frame_period;
 
     'running: loop {
         // --- Event handling ---
@@ -148,12 +148,12 @@ fn emulate(mut gb: GB) {
         }
 
         // Latency handling
-        let queued_bytes = audio.size() as usize;
-        let target_latency_bytes = 44100 /*Hz*/ * 2 /*bytes*/ * 2 /*channels*/ / 20; // ~50ms
-        if queued_bytes > target_latency_bytes * 2 {
+        // let queued_bytes = audio.size() as usize;
+        // let target_latency_bytes = 44_100 /*Hz*/ * 2 /*bytes*/ * 2 /*channels*/ / 20; // ~50ms
+        // if queued_bytes > target_latency_bytes * 2 {
             // if it exceeds >100ms, clear a bit so it doesn't grow indefinitely
-            audio.clear();
-        }
+            // audio.clear();
+        //}
 
         // --- Precise frame limiter (sleep + spin to reach exact deadline) ---
         let now = Instant::now();
