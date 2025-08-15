@@ -5,7 +5,7 @@ use crate::gb::{BTN_RIGHT, BTN_LEFT, BTN_UP, BTN_DOWN, BTN_A, BTN_B, BTN_SELECT,
 // Responsibilities:
 //   - Owns VRAM/WRAM/OAM/HRAM, I/O registers, and IE.
 //   - Serves CPU reads/writes and mirrors (e.g., E000–FDFF mirrors C000–DDFF).
-//   - Exposes the joypad matrix via P1 (0xFF00)
+//   - Exposes the joypad matrix via P1 (0xFF00).
 //   - Performs simple DMA-OAM transfers on writes to 0xFF46.
 //   - Applies a post-BIOS register initialization in `new()`.
 
