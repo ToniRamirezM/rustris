@@ -122,7 +122,6 @@ impl PPU {
         }
     }
 
-
     /// Advances the PPU to the next scanline, handling VBlank entry and LY wrapping.
     ///
     /// ## Behavior:
@@ -173,7 +172,6 @@ impl PPU {
             self.mode = PPUMode::VBlank;
         }
     }
-
 
     /// Renders the current background scanline using LCDC and scroll registers.
     ///
