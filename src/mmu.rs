@@ -6,7 +6,7 @@ use crate::gb::{BTN_RIGHT, BTN_LEFT, BTN_UP, BTN_DOWN, BTN_A, BTN_B, BTN_SELECT,
 // Responsibilities:
 //   - Owns VRAM/WRAM/OAM/HRAM, I/O registers, and IE.
 //   - Serves CPU reads/writes and mirrors (e.g., E000–FDFF mirrors C000–DDFF).
-//   - Exposes the joypad matrix via P1 (0xFF00) and raises the Joypad IRQ (IF bit 4) on press edges.
+//   - Exposes the joypad matrix via P1 (0xFF00).
 //   - Performs simple DMA-OAM transfers on writes to 0xFF46.
 //   - Applies a post-BIOS register initialization in `new()`.
 
@@ -191,36 +191,10 @@ impl MMU {
         if (new & BTN_UP)    != 0 { new &= !BTN_DOWN; }
         if (new & BTN_DOWN)  != 0 { new &= !BTN_UP; }
 
-        let old = self.buttons;
         self.buttons = new;
-        self.maybe_trigger_joypad_irq(old);
     }
 
     pub fn input_release(&mut self, mask: u8) {
         self.buttons &= !mask;
-    }
-
-    fn maybe_trigger_joypad_irq(&mut self, old: u8) {
-        // IRQ on press (0->1 edge in our internal buffer)
-        let pressed_edges = (!old) & self.buttons;
-
-        // Only if the corresponding line is selected in P1
-        let p1 = self.io[0x00];
-        let sel_buttons = (p1 & 0b0010_0000) == 0;
-        let sel_dpad    = (p1 & 0b0001_0000) == 0;
-
-        let mut any = 0u8;
-        if sel_buttons {
-            any |= pressed_edges & (BTN_A | BTN_B | BTN_SELECT | BTN_START);
-        }
-        if sel_dpad {
-            any |= pressed_edges & (BTN_RIGHT | BTN_LEFT | BTN_UP | BTN_DOWN);
-        }
-
-        if any != 0 {
-            // IF bit 4
-            let iflag = self.read_byte(0xFF0F) | 0x10;
-            self.write_byte(0xFF0F, iflag);
-        }
     }
 }
